@@ -2,13 +2,14 @@
 library(shiny)
 library(sf)
 library(leaflet)
-library(leaflet.extras) # Pour la fonctionnalité de sélection de zone
 library(dplyr)
 library(stringr)
 library(htmltools)
 library(RColorBrewer)
 library(mapview) # Pour exporter en PDF
 library(webshot2) # Pour l'export PDF
+library(rsconnect)
+library(mapview)
 
 # Chemins des dossiers et fichiers
 path_indicateurs_saisonniers <- "Data/INDICATEURS_SAISONNIERS_ETE/"
@@ -104,7 +105,7 @@ get_variables_for_horizon <- function(data, horizon) {
   return(vars)
 }
 
-# Charger le shapefile des communes et préparer le spatial join - CORRIGÉ
+# Charger le shapefile des communes et préparer le spatial join
 load_communes <- function(path_communes) {
   if (!file.exists(path_communes)) {
     warning("Fichier de communes non trouvé: ", path_communes)
@@ -142,7 +143,7 @@ load_communes <- function(path_communes) {
   })
 }
 
-# Définir l'interface utilisateur - MODIFIÉE pour ajouter le bouton de confirmation
+# Définir l'interface utilisateur - Suppression de la fonctionnalité BoxZoom
 ui <- fluidPage(
   titlePanel("Visualisation des Données DRIAS"),
   
@@ -164,18 +165,6 @@ ui <- fluidPage(
       actionButton("confirmChoices", "Confirmer et charger la carte", 
                    style = "margin-top: 15px; margin-bottom: 15px; width: 100%; background-color: #4CAF50; color: white; font-weight: bold;"),
       
-      # Outil de sélection de zone simplifié
-      checkboxInput("enableZoom", "Activer la sélection de zone", FALSE),
-      conditionalPanel(
-        condition = "input.enableZoom == true",
-        tags$div(
-          style = "font-size: 0.9em; margin-top: 10px; padding: 10px; background-color: #f8f9fa; border-radius: 5px;",
-          tags$p("Maintenez la touche Maj (⇧) et dessinez un rectangle pour zoomer sur une zone spécifique.")
-        ),
-        actionButton("resetZoom", "Réinitialiser le zoom", 
-                     style = "margin-top: 5px; width: 100%;")
-      ),
-      
       # Bouton pour télécharger la carte en PDF
       downloadButton("downloadPDF", "Télécharger la carte (PDF)"),
       
@@ -189,14 +178,11 @@ ui <- fluidPage(
   )
 )
 
-# Définir le serveur - MODIFIÉ pour utiliser le bouton de confirmation
+# Définir le serveur - Suppression des popups et BoxZoom
 server <- function(input, output, session) {
   
   # Charger les descriptions de variables dès le démarrage
   var_descriptions <- reactiveVal(read_descriptions(path_descriptions))
-  
-  # Charger les communes
-  communes_data <- reactiveVal(load_communes(path_communes))
   
   # Obtenir le chemin du dossier en fonction du thème sélectionné
   selected_folder_path <- reactive({
@@ -307,31 +293,6 @@ server <- function(input, output, session) {
       )
   })
   
-  # Observer pour activer/désactiver la fonctionnalité de sélection de zone
-  observe({
-    leafletProxy("map") %>%
-      clearControls() %>%
-      addScaleBar(position = "bottomleft")
-    
-    # Ajouter l'outil de sélection uniquement si activé
-    if (input$enableZoom) {
-      leafletProxy("map") %>%
-        addControl(
-          html = tags$div(
-            style = "padding: 6px 8px; background: white; border-radius: 5px; box-shadow: 0 0 15px rgba(0,0,0,0.2);",
-            tags$p("Maintenez la touche Maj (⇧) et dessinez un rectangle pour zoomer")
-          ),
-          position = "topleft"
-        )
-    }
-  })
-  
-  # Observateur pour réinitialiser le zoom
-  observeEvent(input$resetZoom, {
-    leafletProxy("map") %>% 
-      setView(lng = 4, lat = 47, zoom = 6)
-  })
-  
   # État réactif pour la carte actuelle
   current_map <- reactiveVal(NULL)
   
@@ -406,50 +367,6 @@ server <- function(input, output, session) {
       var_desc <- "Description non disponible"
     }
     
-    # Préparer les popups avec les noms des communes si disponibles
-    communes <- communes_data()
-    
-    # Créer les popups avec les noms de communes
-    if (!is.null(communes)) {
-      # Pour chaque polygone, trouvons la commune correspondante
-      # Utiliser un spatial join complet une seule fois
-      data_centroids <- st_centroid(data)
-      
-      # Utiliser st_nearest_feature de manière sécurisée
-      join_result <- tryCatch({
-        st_join(data_centroids, communes, join = st_nearest_feature)
-      }, error = function(e) {
-        # En cas d'erreur, revenir à une méthode plus simple
-        warning("Erreur lors du spatial join: ", e$message)
-        data_centroids
-      })
-      
-      # Créer les popups
-      popups <- mapply(function(i, value) {
-        commune_info <- join_result[i, ]
-        commune_name <- if (!is.null(commune_info$NOM_COMM) && !is.na(commune_info$NOM_COMM)) {
-          commune_info$NOM_COMM
-        } else if (!is.null(commune_info$LIB) && !is.na(commune_info$LIB)) {
-          commune_info$LIB
-        } else {
-          "Commune inconnue"
-        }
-        
-        popup_text <- paste0(
-          "<strong>Commune: ", commune_name, "</strong><br>",
-          "<strong>", input$variable, "</strong><br>",
-          "Valeur: ", round(value, 2)
-        )
-        return(popup_text)
-      }, seq_along(data$geometry), data[[col_name]])
-    } else {
-      # Si les données de commune ne sont pas disponibles, utiliser le popup simple
-      popups <- paste0(
-        "<strong>", input$variable, "</strong><br>",
-        "Valeur: ", round(data[[col_name]], 2)
-      )
-    }
-    
     # Créer le titre avec l'horizon et sa période
     horizon_period <- horizon_periods[[input$horizon]]
     title <- paste0(
@@ -467,12 +384,22 @@ server <- function(input, output, session) {
         fillOpacity = 1.0,
         color = "#444444",
         weight = 0.5,
-        popup = popups,
         highlightOptions = highlightOptions(
           weight = 2,
           color = "#666",
           fillOpacity = 0.7,
           bringToFront = TRUE
+        ),
+        # Ajout des popups qui s'affichent au clic
+        popup = ~paste0(
+          "<strong>Valeur:</strong> ", 
+          ifelse(is.na(data[[col_name]]), "Non disponible", round(data[[col_name]], 2)),
+          "<br><strong>Variable:</strong> ", input$variable
+        ),
+        # Ajout des labels qui s'affichent au survol
+        label = ~paste0(
+          "Valeur: ", 
+          ifelse(is.na(data[[col_name]]), "Non disponible", round(data[[col_name]], 2))
         )
       ) %>%
       addLegend(
@@ -489,16 +416,6 @@ server <- function(input, output, session) {
         ),
         position = "topright"
       )
-    
-    # Activer le BoxZoom qui permet de zoomer en maintenant Maj et en dessinant un rectangle
-    if (input$enableZoom) {
-      leafletProxy("map") %>% 
-        addMiniMap(
-          tiles = providers$Esri.WorldStreetMap,
-          toggleDisplay = TRUE,
-          position = "bottomright"
-        )
-    }
     
     # Stocker la carte mise à jour
     map_data <- list(
