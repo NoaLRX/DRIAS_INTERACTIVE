@@ -20,12 +20,29 @@ path_agri_indicateurs <- "Data/AGRI_INDICATEURS_ANNUELS_HORIZONS"
 path_descriptions <- "Data/noms_variables.txt"
 path_communes <- "Data/Communes/codes_postaux_region.shp"
 
-# Définition des périodes des horizons
+# Définition des périodes des horizons avec noms complets
 horizon_periods <- list(
   "REF" = "Référence",
   "H1" = "2021-2050",
   "H2" = "2041-2070",
   "H3" = "2071-2100"
+)
+
+# Définition des noms complets des horizons
+horizon_full_names <- list(
+  "REF" = "REF : Période de Référence",
+  "H1" = "H1 : Horizon proche [2021-2050]",
+  "H2" = "H2 : Horizon Moyen [2041-2070]",
+  "H3" = "H3 : Horizon Lointain [2071-2100]"
+)
+
+# Définition des noms complets des scénarios
+scenario_full_names <- list(
+  "REFERENCE" = "REFERENCE",
+  "Scénario 2.6" = "RCP 2.6",
+  "Scénario 4.5" = "RCP 4.5",
+  "Scénario 8.5" = "RCP 8.5",
+  "Inconnu" = "Inconnu"
 )
 
 # Lecture des descriptions de variables
@@ -95,7 +112,7 @@ extract_horizons <- function(data) {
 }
 
 # Fonction pour obtenir les variables disponibles pour un horizon donné
-get_variables_for_horizon <- function(data, horizon) {
+get_variables_for_horizon <- function(data, horizon, var_descriptions) {
   col_names <- colnames(data)
   # Recherche les colonnes se terminant par l'horizon spécifié
   vars <- col_names[grepl(paste0("_", horizon, "$"), col_names)]
@@ -103,7 +120,19 @@ get_variables_for_horizon <- function(data, horizon) {
   vars <- gsub(paste0("_", horizon, "$"), "", vars)
   # Exclure les colonnes non-variables (geom, index_original, etc.)
   vars <- vars[!vars %in% c("geom", "index_original")]
-  return(vars)
+  
+  # Créer un vecteur nommé pour le menu déroulant avec codes et descriptions
+  vars_named <- vars
+  names(vars_named) <- sapply(vars, function(var) {
+    desc <- var_descriptions[[var]]
+    if (!is.null(desc) && desc != "") {
+      paste0(var, " - ", desc)
+    } else {
+      var
+    }
+  })
+  
+  return(vars_named)
 }
 
 # Charger le shapefile des communes et préparer le spatial join
@@ -153,8 +182,8 @@ ui <- fluidPage(
       selectInput("theme", "Thème:", 
                   choices = c("DRIAS - Indicateurs Saisonniers" = "INDICATEURS_SAISONNIERS_ETE",
                               "DRIAS - Indicateurs Annuels" = "INDICATEURS_ANNUELS_HORIZONS",
-                              "DRIAS FEUX - Indicateurs Annuels" = "FEUX_INDICATEURS_ANNUELS_HORIZONS",
-                              "DRIAS AGRI - Indicateurs Annuels" = "AGRI_INDICATEURS_ANNUELS_HORIZONS")),
+                              "🔥 DRIAS FEUX - Indicateurs Annuels" = "FEUX_INDICATEURS_ANNUELS_HORIZONS",
+                              "🌱 DRIAS AGRI - Indicateurs Annuels" = "AGRI_INDICATEURS_ANNUELS_HORIZONS")),
       
       selectInput("scenario", "Scénario:", choices = NULL),
       
@@ -202,9 +231,17 @@ server <- function(input, output, session) {
     gpkg_files <- get_gpkg_files(folder_path)
     
     if (length(gpkg_files) > 0) {
+      # Extraire les scénarios
       scenarios <- sapply(gpkg_files, extract_scenario)
-      names(scenarios) <- gpkg_files
-      updateSelectInput(session, "scenario", choices = unique(scenarios))
+      # Créer un vecteur nommé pour les scénarios avec leurs noms complets
+      named_scenarios <- sapply(unique(scenarios), function(s) scenario_full_names[[s]])
+      names(named_scenarios) <- unique(scenarios)
+      # Associer les fichiers aux scénarios pour les retrouver plus tard
+      scenario_files <- split(gpkg_files, scenarios)
+      # Stocker les associations fichiers-scénarios pour une utilisation ultérieure
+      session$userData$scenario_files <- scenario_files
+      # Mettre à jour le menu déroulant avec les noms complets
+      updateSelectInput(session, "scenario", choices = named_scenarios)
     } else {
       updateSelectInput(session, "scenario", choices = character(0))
     }
@@ -213,43 +250,40 @@ server <- function(input, output, session) {
   # Charger les données en fonction du thème et du scénario
   raw_data <- reactive({
     req(input$scenario)
-    folder_path <- selected_folder_path()
-    gpkg_files <- get_gpkg_files(folder_path)
+    # Récupérer le scénario d'origine (clé) à partir du nom complet sélectionné
+    selected_scenario <- input$scenario
+    scenario_key <- names(which(sapply(scenario_full_names, function(name) name == selected_scenario)))
+    if (length(scenario_key) == 0) scenario_key <- selected_scenario
     
-    # Aucun fichier trouvé
-    if (length(gpkg_files) == 0) {
+    # Récupérer les fichiers correspondant au scénario
+    scenario_files <- session$userData$scenario_files[[scenario_key]]
+    
+    if (length(scenario_files) == 0) {
       return(NULL)
     }
     
-    # Trouver le fichier correspondant au scénario sélectionné
-    scenario_files <- names(which(sapply(gpkg_files, extract_scenario) == input$scenario))
-    
-    if (length(scenario_files) > 0) {
-      # Charger les données du premier fichier correspondant
-      tryCatch({
-        # Lecture avec transformation EPSG:4326 (WGS84) pour Leaflet
-        data <- st_read(scenario_files[1], quiet = TRUE)
-        
-        # Ajouter un index pour la jointure
-        data$index_original <- seq_len(nrow(data))
-        
-        # Vérifier et transformer la projection si nécessaire
-        if (!is.na(st_crs(data)$wkt) && st_crs(data)$epsg != 4326) {
-          data <- st_transform(data, 4326)
-        } else if (is.na(st_crs(data)$wkt)) {
-          # Si la projection n'est pas définie, assigner une projection (souvent Lambert-93 pour la France)
-          data <- st_set_crs(data, 2154)
-          data <- st_transform(data, 4326)
-        }
-        
-        return(data)
-      }, error = function(e) {
-        warning("Erreur lors de la lecture du fichier: ", e$message)
-        return(NULL)
-      })
-    } else {
+    # Charger les données du premier fichier correspondant
+    tryCatch({
+      # Lecture avec transformation EPSG:4326 (WGS84) pour Leaflet
+      data <- st_read(scenario_files[1], quiet = TRUE)
+      
+      # Ajouter un index pour la jointure
+      data$index_original <- seq_len(nrow(data))
+      
+      # Vérifier et transformer la projection si nécessaire
+      if (!is.na(st_crs(data)$wkt) && st_crs(data)$epsg != 4326) {
+        data <- st_transform(data, 4326)
+      } else if (is.na(st_crs(data)$wkt)) {
+        # Si la projection n'est pas définie, assigner une projection (souvent Lambert-93 pour la France)
+        data <- st_set_crs(data, 2154)
+        data <- st_transform(data, 4326)
+      }
+      
+      return(data)
+    }, error = function(e) {
+      warning("Erreur lors de la lecture du fichier: ", e$message)
       return(NULL)
-    }
+    })
   })
   
   # Données sélectionnées qui ne seront actualisées que lors de la confirmation
@@ -260,7 +294,14 @@ server <- function(input, output, session) {
     data <- raw_data()
     if (!is.null(data)) {
       horizons <- extract_horizons(data)
-      updateSelectInput(session, "horizon", choices = horizons)
+      
+      # Créer un vecteur pour les horizons avec leurs noms complets
+      named_horizons <- sapply(horizons, function(h) horizon_full_names[[h]])
+      
+      # Important: définir les noms explicitement pour que la sélection fonctionne
+      names(named_horizons) <- named_horizons
+      
+      updateSelectInput(session, "horizon", choices = named_horizons)
     } else {
       updateSelectInput(session, "horizon", choices = character(0))
     }
@@ -269,10 +310,18 @@ server <- function(input, output, session) {
   # Mettre à jour les variables disponibles dès que l'horizon est sélectionné
   observe({
     data <- raw_data()
-    req(input$horizon)
+    horizon_input <- input$horizon
+    
+    # Extraire le code de l'horizon à partir du nom complet
+    if (!is.null(horizon_input) && nchar(horizon_input) > 0) {
+      # Extraire le code (REF, H1, H2, H3) du nom complet
+      horizon_code <- substr(horizon_input, 1, if(startsWith(horizon_input, "REF")) 3 else 2)
+    } else {
+      return()
+    }
     
     if (!is.null(data)) {
-      variables <- get_variables_for_horizon(data, input$horizon)
+      variables <- get_variables_for_horizon(data, horizon_code, var_descriptions())
       updateSelectInput(session, "variable", choices = variables)
     } else {
       updateSelectInput(session, "variable", choices = character(0))
@@ -305,9 +354,27 @@ server <- function(input, output, session) {
     # Afficher un message de chargement
     showNotification("Chargement de la carte...", type = "message", duration = 1)
     
+    # Extraire le code de l'horizon à partir du nom complet
+    horizon_input <- input$horizon
+    if (!is.null(horizon_input) && nchar(horizon_input) > 0) {
+      # Extraire le code (REF, H1, H2, H3) du nom complet
+      horizon_code <- substr(horizon_input, 1, if(startsWith(horizon_input, "REF")) 3 else 2)
+    } else {
+      horizon_code <- NULL
+    }
+    
+    # Extraire le code de la variable à partir du nom complet
+    variable_input <- input$variable
+    if (!is.null(variable_input) && nchar(variable_input) > 0) {
+      # Si la variable est au format "CODE - Description", extraire le code
+      variable_code <- strsplit(variable_input, " - ")[[1]][1]
+    } else {
+      variable_code <- variable_input
+    }
+    
     # Mettre à jour la carte avec les paramètres choisis
     data <- selected_data()
-    req(input$horizon, input$variable)
+    req(horizon_code, variable_code)
     
     if (is.null(data)) {
       leafletProxy("map") %>%
@@ -325,7 +392,7 @@ server <- function(input, output, session) {
     }
     
     # Construire le nom de colonne complet
-    col_name <- paste0(input$variable, "_", input$horizon)
+    col_name <- paste0(variable_code, "_", horizon_code)
     
     # Vérifier si la colonne existe
     if (!(col_name %in% colnames(data))) {
@@ -350,10 +417,10 @@ server <- function(input, output, session) {
     values_for_legend <- values[!is.na(values)]
     
     # Définir la palette de couleurs en fonction du type de variable
-    if (grepl("^(NORT|AT).*AV$", input$variable)) {
+    if (grepl("^(NORT|AT).*AV$", variable_code)) {
       # Palette pour les températures
       pal <- colorNumeric(palette = "RdYlBu", domain = values, reverse = TRUE, na.color = "transparent")
-    } else if (grepl("^(NORP|AP)", input$variable)) {
+    } else if (grepl("^(NORP|AP)", variable_code)) {
       # Palette pour les précipitations
       pal <- colorNumeric(palette = "Blues", domain = values, na.color = "transparent")
     } else {
@@ -363,17 +430,18 @@ server <- function(input, output, session) {
     
     # Obtenir la description de la variable
     descriptions <- var_descriptions()
-    var_desc <- descriptions[[input$variable]]
+    var_desc <- descriptions[[variable_code]]
     if (is.null(var_desc) || var_desc == "") {
       var_desc <- "Description non disponible"
     }
     
     # Créer le titre avec l'horizon et sa période
-    horizon_period <- horizon_periods[[input$horizon]]
+    horizon_period <- horizon_periods[[horizon_code]]
+    horizon_name <- horizon_full_names[[horizon_code]]
+    
     title <- paste0(
-      input$variable, " - ", var_desc, "<br>",
-      "<span style='font-size: 0.9em;'>", input$scenario, " - Horizon: ", input$horizon, 
-      if(!is.null(horizon_period)) paste0(" (", horizon_period, ")") else "", "</span>"
+      variable_code, " - ", var_desc, "<br>",
+      "<span style='font-size: 0.9em;'>", input$scenario, " - ", horizon_name, "</span>"
     )
     
     # Mettre à jour la carte sans redessiner complètement
@@ -395,7 +463,7 @@ server <- function(input, output, session) {
         popup = ~paste0(
           "<strong>Valeur:</strong> ", 
           ifelse(is.na(data[[col_name]]), "Non disponible", round(data[[col_name]], 2)),
-          "<br><strong>Variable:</strong> ", input$variable
+          "<br><strong>Variable:</strong> ", variable_code, " - ", var_desc
         ),
         # Ajout des labels qui s'affichent au survol
         label = ~paste0(
@@ -407,7 +475,8 @@ server <- function(input, output, session) {
         position = "bottomleft",
         pal = pal,
         values = values_for_legend,
-        title = input$variable,
+        # Modification: Ne pas afficher de titre dans la légende
+        title = NULL,
         opacity = 1.0
       ) %>%
       addControl(
@@ -424,7 +493,9 @@ server <- function(input, output, session) {
       col_name = col_name,
       pal = pal,
       title = title,
-      values = values_for_legend
+      values = values_for_legend,
+      variable_code = variable_code,
+      var_desc = var_desc
     )
     current_map(map_data)
   })
@@ -432,7 +503,22 @@ server <- function(input, output, session) {
   # Téléchargement de la carte en PDF
   output$downloadPDF <- downloadHandler(
     filename = function() {
-      paste0("carte-", input$theme, "-", input$scenario, "-", input$horizon, "-", input$variable, ".pdf")
+      # Extraire les codes des sélections pour le nom de fichier
+      horizon_input <- input$horizon
+      if (!is.null(horizon_input) && nchar(horizon_input) > 0) {
+        horizon_code <- substr(horizon_input, 1, if(startsWith(horizon_input, "REF")) 3 else 2)
+      } else {
+        horizon_code <- "unknown"
+      }
+      
+      variable_input <- input$variable
+      if (!is.null(variable_input) && grepl(" - ", variable_input)) {
+        variable_code <- strsplit(variable_input, " - ")[[1]][1]
+      } else {
+        variable_code <- variable_input
+      }
+      
+      paste0("carte-", input$theme, "-", input$scenario, "-", horizon_code, "-", variable_code, ".pdf")
     },
     content = function(file) {
       # Vérifier si une carte valide est disponible
@@ -461,7 +547,8 @@ server <- function(input, output, session) {
           position = "bottomleft",
           pal = map_data$pal,
           values = map_data$values,
-          title = input$variable,
+          # Modification: Ne pas afficher de titre dans la légende pour le PDF également
+          title = NULL,
           opacity = 1.0
         ) %>%
         addControl(
