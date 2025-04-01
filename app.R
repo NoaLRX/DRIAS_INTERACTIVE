@@ -11,12 +11,12 @@ library(mapview) # Pour exporter en PDF
 library(webshot2) # Pour l'export PDF
 
 # Chemins des dossiers et fichiers
-path_indicateurs_saisonniers <- "/Users/noa/Desktop/PRISM/Data/PROJET_QGIS/INDICATEURS_SAISONNIERS_ETE"
-path_indicateurs_annuels <- "/Users/noa/Desktop/PRISM/Data/PROJET_QGIS/INDICATEURS_ANNUELS_HORIZONS"
-path_feux_indicateurs <- "/Users/noa/Desktop/PRISM/Data/PROJET_QGIS/FEUX_INDICATEURS_ANNUELS_HORIZONS"
-path_agri_indicateurs <- "/Users/noa/Desktop/PRISM/Data/PROJET_QGIS/AGRI_INDICATEURS_ANNUELS_HORIZONS"
-path_descriptions <- "/Users/noa/Desktop/PRISM/Documentation/noms_variables.txt"
-path_communes <- "/Users/noa/Desktop/PRISM/Data/MISC/Codes postaux - Communes/codes_postaux_region.shp" # Chemin vers le fichier des communes
+path_indicateurs_saisonniers <- "Data/INDICATEURS_SAISONNIERS_ETE/"
+path_indicateurs_annuels <- "Data/INDICATEURS_ANNUELS_HORIZONS"
+path_feux_indicateurs <- "Data/FEUX_INDICATEURS_ANNUELS_HORIZONS"
+path_agri_indicateurs <- "Data/AGRI_INDICATEURS_ANNUELS_HORIZONS"
+path_descriptions <- "Data/noms_variables.txt"
+path_communes <- "Data/Communes/codes_postaux_region.shp" # Chemin vers le fichier des communes
 
 # Définition des périodes des horizons
 horizon_periods <- list(

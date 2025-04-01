@@ -1,0 +1,48 @@
+[NORTAV]: Température moyenne C°
+[NORSTM0]: Somme de température 'en base 0°C' d'octobre à juillet
+[NORIFM40]: Sensibilité Feu Météo Elevée (nb jours IFM12 >= 40)
+[NORTXAV]: Température maximale C
+[NORDATEVEG]: Date de la reprise de la végétation pour la prairie jour julien
+[NORIFMxAV]: IFMx moyen
+[NORDATEPG]: Date de la première gelée origine 1/07
+[NORIFMx50]: Danger Feu Météo Végétation Vivante Elevé (nb jours IFMx >= 50)
+[ATAV]: Ecart de température moyenne C
+[NORDATEDG]: Date de la dernière gelée origine 1/07
+[ATXAV]: Ecart de température maximale C
+[AIFM40]: Ecart de Sensibilité Feu Météo Elevée (nb jours IFM12 >= 40)
+[NORSD]: Nombre de journées d'été
+[ADATEVEG]: Ecart de la date de la reprise de la végétation pour la prairie
+[NORTX35]: Nombre de jours de forte chaleur
+[AIFMxAV]: Ecart de IFMx moyen
+[ADATEDG]: Ecart de la date de la dernière gelée
+[AIFMx50]: Ecart de Danger Feu Météo Végétation Vivante Elevé (nb jours IFMx >= 50)
+[NORTXHWD]: Nombre de jours de vague de chaleur
+[NORTR]: Nombre de nuits tropicales
+[NORSDA]: Nombre de jours d'été d'avril à juin
+[NORTNFD]: Nombre de jours de gel
+[NORTNCWD]: Nombre de jours de vague de froid
+[ASDA]: Ecart du nombre de jours d'été d'avril à juin
+[ASD]: Ecart du nombre de journées d'été
+[NORRRA]: Cumul de précipitations d'avril à octobre
+[ATX35]: Ecart du nombre de jours de forte chaleur
+[ATXHWD]: Ecart du nombre de jours de vague de chaleur
+[ATR]: Ecart du nombre de nuits tropicales
+[ATNFD]: Ecart du nombre de jours de gel
+[ATNCWD]: Ecart du nombre de jours de vague de froid
+[NORRR]: Cumul de précipitations mm
+[NORPQ90]: Précipitations quotidiennes intenses (Q90) mm
+[NORPQ99]: Précipitations quotidiennes extrêmes (Q99) mm
+[NORPFL90]: Pourcentage des précipitations intenses
+[NORTPSPI]: Temps passé en sécheresse météorologique sans unité
+[ARR]: Ecart du cumul de précipitations mm
+[APQ90]: Ecart de précipitations quotidiennes intenses mm
+[APQ99]: Ecart de précipitations quotidiennes extrêmes mm
+[APFL90]: Ecart du pourcentage des précipitations intenses
+[NORRR1MM]: Nombre de jours de pluie
+[ARR1MM]: Ecart du nombre de jours de pluie
+[NORFFQ98]: Vent fort (Q98) m/s
+[AFFQ98]: Ecart de vent fort (Q98) m/s
+[AFFAV]: Ecart de la vitesse de vent quotidienne moyenne m/s
+[NORFF98]: Nombre de jours de vent > Q98
+[AFF98]: Ecart du nombre de jours de vent > Q98
+[AFF3]: Ecart du nombre de jours sans vent
