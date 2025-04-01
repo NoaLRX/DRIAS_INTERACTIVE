@@ -1,4 +1,3 @@
-# app.R
 library(shiny)
 library(sf)
 library(leaflet)
@@ -10,6 +9,8 @@ library(mapview) # Pour exporter en PDF
 library(webshot2) # Pour l'export PDF
 library(rsconnect)
 library(mapview)
+library(remotes)
+library(raster)
 
 # Chemins des dossiers et fichiers
 path_indicateurs_saisonniers <- "Data/INDICATEURS_SAISONNIERS_ETE/"
@@ -17,7 +18,7 @@ path_indicateurs_annuels <- "Data/INDICATEURS_ANNUELS_HORIZONS"
 path_feux_indicateurs <- "Data/FEUX_INDICATEURS_ANNUELS_HORIZONS"
 path_agri_indicateurs <- "Data/AGRI_INDICATEURS_ANNUELS_HORIZONS"
 path_descriptions <- "Data/noms_variables.txt"
-path_communes <- "Data/Communes/codes_postaux_region.shp" # Chemin vers le fichier des communes
+path_communes <- "Data/Communes/codes_postaux_region.shp"
 
 # Définition des périodes des horizons
 horizon_periods <- list(
