@@ -28,10 +28,10 @@ library(gridExtra)  # Pour combiner les graphiques
 source("wrapper.R")
 
 # Chemins des dossiers et fichiers
-path_indicateurs_saisonniers <- "/Users/noa/Desktop/TESTING/INDICATEURS_SAISONNIERS_ETE/Resultats/"
-path_indicateurs_annuels <- "/Users/noa/Desktop/TESTING/INDICATEURS_ANNUELS_HORIZONS/Resultats/"
-path_feux_indicateurs <- "/Users/noa/Desktop/TESTING/FEUX_INDICATEURS_ANNUELS_HORIZONS/Resultats/"
-path_agri_indicateurs <- "/Users/noa/Desktop/TESTING/AGRI_INDICATEURS_ANNUELS_HORIZONS/Resultats/"
+path_indicateurs_saisonniers <- "Data/INDICATEURS_SAISONNIERS_ETE/Resultats/"
+path_indicateurs_annuels <- "Data/INDICATEURS_ANNUELS_HORIZONS/Resultats/"
+path_feux_indicateurs <- "Data/FEUX_INDICATEURS_ANNUELS_HORIZONS/Resultats/"
+path_agri_indicateurs <- "Data/AGRI_INDICATEURS_ANNUELS_HORIZONS/Resultats/"
 path_descriptions <- "Data/noms_variables.txt"
 path_communes <- "Data/Communes/codes_postaux_region.shp"
 # Dossier pour stocker les fichiers de cache

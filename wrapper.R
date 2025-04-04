@@ -11,10 +11,10 @@ generate_diagnostic_pdf <- function(file, code_commune, commune_name) {
   
   # Charger les données des scénarios
   tryCatch({
-    scenarioREF_full <- read_excel("/Users/noa/Desktop/TESTING/INDICATEURS_SAISONNIERS_ETE/Resultats/DRIAS_ETE_2_6_clean_FINAL_RESULTS_COMMUNES.xlsx")
-    scenario26_full <- read_excel("/Users/noa/Desktop/TESTING/INDICATEURS_SAISONNIERS_ETE/Resultats/DRIAS_ETE_2_6_clean_FINAL_RESULTS_COMMUNES.xlsx")
-    scenario45_full <- read_excel("/Users/noa/Desktop/TESTING/INDICATEURS_SAISONNIERS_ETE/Resultats/DRIAS_ETE_4_5_clean_FINAL_RESULTS_COMMUNES.xlsx")
-    scenario85_full <- read_excel("/Users/noa/Desktop/TESTING/INDICATEURS_SAISONNIERS_ETE/Resultats/DRIAS_ETE_8_5_clean_FINAL_RESULTS_COMMUNES.xlsx")
+    scenarioREF_full <- read_excel("Data/INDICATEURS_SAISONNIERS_ETE/Resultats/DRIAS_ETE_2_6_clean_FINAL_RESULTS_COMMUNES.xlsx")
+    scenario26_full <- read_excel("Data/INDICATEURS_SAISONNIERS_ETE/Resultats/DRIAS_ETE_2_6_clean_FINAL_RESULTS_COMMUNES.xlsx")
+    scenario45_full <- read_excel("Data/INDICATEURS_SAISONNIERS_ETE/Resultats/DRIAS_ETE_4_5_clean_FINAL_RESULTS_COMMUNES.xlsx")
+    scenario85_full <- read_excel("Data/INDICATEURS_SAISONNIERS_ETE/Resultats/DRIAS_ETE_8_5_clean_FINAL_RESULTS_COMMUNES.xlsx")
     
     # Filtrer les données pour la commune spécifique
     scenarioREF <- scenarioREF_full %>% filter(CODE_C == code_commune)

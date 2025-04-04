@@ -1,15 +1,15 @@
 library(readxl)
-scenarioREF <- read_excel("/Users/noa/Desktop/TESTING/INDICATEURS_SAISONNIERS_ETE/Resultats/DRIAS_ETE_2_6_clean_FINAL_RESULTS_COMMUNES.xlsx")
+scenarioREF <- read_excel("Data/INDICATEURS_SAISONNIERS_ETE/Resultats/DRIAS_ETE_2_6_clean_FINAL_RESULTS_COMMUNES.xlsx")
 colnames(scenarioREF)
 
-scenario26<- read_excel("/Users/noa/Desktop/TESTING/INDICATEURS_SAISONNIERS_ETE/Resultats/DRIAS_ETE_2_6_clean_FINAL_RESULTS_COMMUNES.xlsx")
+scenario26<- read_excel("Data/INDICATEURS_SAISONNIERS_ETE/Resultats/DRIAS_ETE_2_6_clean_FINAL_RESULTS_COMMUNES.xlsx")
 colnames(scenario26)
 
-scenario45<- read_excel("/Users/noa/Desktop/TESTING/INDICATEURS_SAISONNIERS_ETE/Resultats/DRIAS_ETE_4_5_clean_FINAL_RESULTS_COMMUNES.xlsx")
+scenario45<- read_excel("Data/TESTING/INDICATEURS_SAISONNIERS_ETE/Resultats/DRIAS_ETE_4_5_clean_FINAL_RESULTS_COMMUNES.xlsx")
 colnames(scenario45)
 
 
-scenario85<- read_excel("/Users/noa/Desktop/TESTING/INDICATEURS_SAISONNIERS_ETE/Resultats/DRIAS_ETE_8_5_clean_FINAL_RESULTS_COMMUNES.xlsx")
+scenario85<- read_excel("Data/TESTING/INDICATEURS_SAISONNIERS_ETE/Resultats/DRIAS_ETE_8_5_clean_FINAL_RESULTS_COMMUNES.xlsx")
 colnames(scenario85)
 
 library(ggplot2)
